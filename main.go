@@ -24,15 +24,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// make sure to defer the closing of the connection
 	defer dbConn.Close()
 
-	// initialize users package with the database connection
 	users.Init(dbConn)
+
+	certPub, _ := os.ReadFile("./cert.crt")
+	certPriv, _ := os.ReadFile("./cert.key")
+	cert, err := tls.X509KeyPair(certPub, certPriv)
+	if err != nil {
+		panic(err)
+	}
+
 	srv, err := grpcserver.New(
 		grpcserver.WithViper(),
 		grpcserver.WithReflectionService(),
-		grpcserver.WithInsecureSkipVerify(),
+		grpcserver.WithCertificate(cert),
+		grpcserver.WithPort(8081),
+		grpcserver.WithClientAuth(tls.RequestClientCert),
+	//	grpcserver.WithInsecureSkipVerify(),
 	)
 	if err != nil {
 		panic(err)
@@ -52,20 +61,14 @@ func main() {
 	jdocspb.RegisterJdocsServer(srv.Transport(), jdocsServer)
 	tokenpb.RegisterTokenServer(srv.Transport(), tokenServer)
 
-	certPub, _ := os.ReadFile("./cert.crt")
-	certPriv, _ := os.ReadFile("./cert.key")
-	cert, err := tls.X509KeyPair(certPub, certPriv)
-	if err != nil {
-		panic(err)
-	}
-	listenerOne, err := tls.Listen("tcp", ":8081", &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		CipherSuites: nil,
-	})
-	if err != nil {
-		panic(err)
-	}
-	go srv.Transport().Serve(listenerOne)
+	// listenerOne, err := tls.Listen("tcp", ":8081", &tls.Config{
+	// 	Certificates: []tls.Certificate{cert},
+	// 	CipherSuites: nil,
+	// })
+	// if err != nil {
+	// 	panic(err)
+	// }
+	srv.Start()
 	http.HandleFunc("/v1", accounts.AccountsAPI)
 	http.ListenAndServe(":8080", nil)
 }
