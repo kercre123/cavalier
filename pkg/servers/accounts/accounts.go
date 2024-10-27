@@ -1,6 +1,11 @@
 package accounts
 
 import (
+	"cavalier/pkg/users"
+	"cavalier/pkg/vars"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -63,7 +68,48 @@ import (
 // let's define a REST API
 
 func AccountsAPI(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/v1/sessions" {
-
+	switch r.URL.Path {
+	case "/v1/sessions":
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			vars.HTTPError(w, "failed to read request body: "+err.Error(), vars.CodeServerError, 500)
+			return
+		}
+		var creds vars.UserAuth
+		err = json.Unmarshal(body, &creds)
+		if err != nil {
+			vars.HTTPError(w, "failed to unmarshal json: "+err.Error(), vars.CodeServerError, 500)
+			return
+		}
+		user, err := users.AuthUser(creds.Username, creds.Password)
+		if err != nil {
+			vars.HTTPError(w, err.Error(), err.Error(), 400)
+			return
+		}
+		fullUser := vars.User{
+			UserID:            user.UserID,
+			PlayerID:          user.UUID,
+			DriveGuestID:      user.UUID,
+			Email:             user.Email,
+			Username:          user.Email,
+			EmailIsVerified:   true,
+			PasswordIsComplex: true,
+			Status:            "active",
+			EmailIsBlocked:    false,
+			NoAutodelete:      false,
+			IsEmailAccount:    true,
+			Dob:               "1970-01-01",
+		}
+		fmt.Println(fullUser)
+	case "/v1/create_user":
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			vars.HTTPError(w, "failed to read request body: "+err.Error(), vars.CodeServerError, 500)
+		}
+		var creds vars.CreateUser
+		err = json.Unmarshal(body, &creds)
+		if err != nil {
+			vars.HTTPError(w, "failed to unmarshal json: "+err.Error(), vars.CodeServerError, 500)
+		}
 	}
 }
