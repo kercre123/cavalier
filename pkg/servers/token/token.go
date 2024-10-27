@@ -151,6 +151,7 @@ func (s *TokenServer) AssociatePrimaryUser(ctx context.Context, req *tokenpb.Ass
 	}
 	os.WriteFile(filepath.Join(vars.SessionCertsStorage, name+"_"+esn), cert, 0777)
 	bundle := GenJWT(sessions.GetUserIDFromSession(token), thing)
+	users.AssociateRobotWithAccount(thing, sessions.GetUserIDFromSession(token))
 	return &tokenpb.AssociatePrimaryUserResponse{
 		Data: bundle,
 	}, nil
@@ -168,13 +169,13 @@ func (s *TokenServer) AssociateSecondaryClient(ctx context.Context, req *tokenpb
 	if err != nil {
 		return nil, err
 	}
+	if !users.IsRobotAssociatedWithAccount(thing, userId) {
+		return nil, errors.New("bot not associated with account")
+	}
 	if !sessions.IsSessionGood(token) {
 		return nil, errors.New("session_expired")
 	}
 	bundle := GenJWT(userId, thing)
-	if !users.IsRobotAssociatedWithAccount(thing, userId) {
-		fmt.Println("oh no, an 'associate secondary client' request without")
-	}
 	return &tokenpb.AssociateSecondaryClientResponse{
 		Data: bundle,
 	}, nil
@@ -190,6 +191,9 @@ func (s *TokenServer) RefreshToken(ctx context.Context, req *tokenpb.RefreshToke
 	thing, userId, err := decodeJWT(jwtToken[0])
 	if err != nil {
 		return nil, err
+	}
+	if !users.IsRobotAssociatedWithAccount(thing, userId) {
+		return nil, errors.New("bot not associated with account")
 	}
 	bundle := GenJWT(userId, thing)
 	return &tokenpb.RefreshTokenResponse{
