@@ -43,7 +43,7 @@ func removeToken(token string) {
 	validSessions = newValidSessions
 }
 
-func Expirerer() {
+func expirerer() {
 	var removeList []string
 	for {
 		sMu.Lock()
@@ -57,6 +57,7 @@ func Expirerer() {
 			fmt.Println("expiring token: " + tok)
 			removeToken(tok)
 		}
+		removeList = []string{}
 		sMu.Unlock()
 		time.Sleep(time.Minute)
 	}
@@ -100,5 +101,5 @@ func IsSessionGood(sessionToken string) bool {
 }
 
 func Init() {
-	go Expirerer()
+	go expirerer()
 }

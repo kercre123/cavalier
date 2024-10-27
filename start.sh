@@ -16,4 +16,4 @@ CGO_ENABLED=1 CGO_CFLAGS="-I$(pwd)/vosklib" CGO_LDFLAGS="-L$(pwd)/vosklib" go bu
 
 echo "built, running"
 
-./main
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/vosklib ./main

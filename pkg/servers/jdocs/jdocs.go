@@ -5,7 +5,6 @@ import (
 	"cavalier/pkg/vars"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/digital-dream-labs/api/go/jdocspb"
 )
@@ -24,8 +23,6 @@ func (s *JdocServer) WriteDoc(ctx context.Context, req *jdocspb.WriteDocReq) (*j
 		ClientMetadata: req.Doc.ClientMetadata,
 		JsonDoc:        req.Doc.JsonDoc,
 	})
-	fmt.Println("writedoc")
-	fmt.Println(req)
 	return &jdocspb.WriteDocResp{
 		Status:           jdocspb.WriteDocResp_ACCEPTED,
 		LatestDocVersion: req.Doc.DocVersion,
@@ -56,9 +53,6 @@ func (s *JdocServer) ReadDocs(ctx context.Context, req *jdocspb.ReadDocsReq) (*j
 			})
 		}
 	}
-	fmt.Println("readdoc")
-	fmt.Println(req)
-	fmt.Println(resp)
 	return &resp, nil
 }
 
