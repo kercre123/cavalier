@@ -4,10 +4,13 @@ import (
 	"cavalier/pkg/servers/accounts"
 	"cavalier/pkg/servers/jdocs"
 	"cavalier/pkg/servers/token"
+	"cavalier/pkg/sessions"
 	"cavalier/pkg/users"
+	"cavalier/pkg/vars"
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 
@@ -26,7 +29,18 @@ func main() {
 
 	defer dbConn.Close()
 
+	dbConnJdocs, err := sql.Open("sqlite3", "./bot_database.db")
+	if err != nil {
+		fmt.Println("Failed to open jdocs database connection:", err)
+		os.Exit(1)
+	}
+
+	defer dbConn.Close()
+	defer dbConnJdocs.Close()
+
 	users.Init(dbConn)
+	vars.InitJdocsDB(dbConnJdocs)
+	sessions.Init()
 
 	certPub, _ := os.ReadFile("./cert.crt")
 	certPriv, _ := os.ReadFile("./cert.key")
@@ -39,7 +53,6 @@ func main() {
 		grpcserver.WithViper(),
 		grpcserver.WithReflectionService(),
 		grpcserver.WithCertificate(cert),
-		grpcserver.WithPort(8081),
 		grpcserver.WithClientAuth(tls.RequestClientCert),
 	//	grpcserver.WithInsecureSkipVerify(),
 	)
@@ -61,14 +74,11 @@ func main() {
 	jdocspb.RegisterJdocsServer(srv.Transport(), jdocsServer)
 	tokenpb.RegisterTokenServer(srv.Transport(), tokenServer)
 
-	// listenerOne, err := tls.Listen("tcp", ":8081", &tls.Config{
-	// 	Certificates: []tls.Certificate{cert},
-	// 	CipherSuites: nil,
-	// })
-	// if err != nil {
-	// 	panic(err)
-	// }
-	srv.Start()
-	http.HandleFunc("/v1", accounts.AccountsAPI)
+	listenerOne, err := net.Listen("tcp", ":8081")
+	if err != nil {
+		panic(err)
+	}
+	go srv.Transport().Serve(listenerOne)
+	http.HandleFunc("/v1/", accounts.AccountsAPI)
 	http.ListenAndServe(":8080", nil)
 }

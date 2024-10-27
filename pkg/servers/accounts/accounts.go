@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"cavalier/pkg/sessions"
 	"cavalier/pkg/users"
 	"cavalier/pkg/vars"
 	"encoding/json"
@@ -68,6 +69,7 @@ import (
 // let's define a REST API
 
 func AccountsAPI(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.URL.Path)
 	switch r.URL.Path {
 	case "/v1/sessions":
 		body, err := io.ReadAll(r.Body)
@@ -98,9 +100,18 @@ func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 			EmailIsBlocked:    false,
 			NoAutodelete:      false,
 			IsEmailAccount:    true,
-			Dob:               "1970-01-01",
+			Dob:               user.DOB,
 		}
-		fmt.Println(fullUser)
+		session := sessions.NewSession(user.UserID)
+		var fullSession vars.Sessions
+		fullSession.Session = session
+		fullSession.User = fullUser
+		writeBytes, err := json.Marshal(fullSession)
+		if err != nil {
+			vars.HTTPError(w, "failed to marshal json: "+err.Error(), vars.CodeServerError, 500)
+			return
+		}
+		w.Write(writeBytes)
 	case "/v1/create_user":
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -111,5 +122,11 @@ func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			vars.HTTPError(w, "failed to unmarshal json: "+err.Error(), vars.CodeServerError, 500)
 		}
+		err = users.CreateUser(creds.Username, creds.Password, creds.DOB)
+		if err != nil {
+			vars.HTTPError(w, err.Error(), err.Error(), 400)
+			return
+		}
+		vars.HTTPSuccess(w, "account created")
 	}
 }

@@ -2,9 +2,27 @@ package token
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
+	"cavalier/pkg/sessions"
+	"cavalier/pkg/users"
+	"cavalier/pkg/vars"
+
+	ijwt "github.com/dgrijalva/jwt-go"
 	"github.com/digital-dream-labs/api/go/tokenpb"
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
+	"github.com/kercre123/wire-pod/chipper/pkg/logger"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -14,53 +32,169 @@ type TokenServer struct {
 	tokenpb.UnimplementedTokenServer
 }
 
-func getTransportCredentials(ctx context.Context) (*credentials.TLSInfo, error) {
+var (
+	TimeFormat     = time.RFC3339Nano
+	ExpirationTime = time.Hour * 24
+)
+
+// returns session token, session cert, robot name ("Vector-####"), then thing ("vic:esn")
+func getBotDetailsFromTokReq(ctx context.Context, req *tokenpb.AssociatePrimaryUserRequest) (token string, cert []byte, name string, esn string, err error) {
 	p, ok := peer.FromContext(ctx)
 	if !ok {
-		return nil, fmt.Errorf("no peer info found in context")
+		return "", nil, "", "", errors.New("no peer info found in context")
 	}
 	fmt.Println(p)
 	if p.AuthInfo != nil {
 		if tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo); ok {
 			if len(tlsInfo.State.PeerCertificates) == 0 {
-				fmt.Println("no certs found :(")
-				return nil, fmt.Errorf("no peer certificates found")
+				return "", nil, "", "", errors.New("no peer certificates found")
 			}
-
 			clientCert := tlsInfo.State.PeerCertificates[0]
-			esn := clientCert.Subject.CommonName
-			fmt.Println(esn)
-			return &tlsInfo, nil
+			esn = clientCert.Subject.CommonName
 		}
 	}
+	cert = req.SessionCertificate
+	block, _ := pem.Decode(cert)
+	certParsed, err := x509.ParseCertificate(block.Bytes)
+	if err == nil {
+		name = certParsed.Issuer.CommonName
+	}
 
-	return nil, fmt.Errorf("no transport credentials available")
+	// get metadata
+	md, ok := metadata.FromIncomingContext(ctx)
+	fmt.Println(md)
+	if !ok {
+		return "", nil, "", "", errors.New("no metadata found in context")
+	}
+	token = md["anki-user-session"][0]
+	fmt.Println(token, cert, name, esn)
+	return token, cert, name, esn, nil
+}
+
+func GenJWT(userID, esnThing string) *tokenpb.TokenBundle {
+	bundle := &tokenpb.TokenBundle{}
+
+	var tokenJson ClientTokenManager
+	guid, tokenHash, _ := CreateTokenAndHashedToken()
+	ajdoc, err := vars.ReadJdoc(vars.Thingifier(esnThing), "vic.AppTokens")
+	if err != nil {
+		ajdoc.DocVersion = 1
+		ajdoc.FmtVersion = 1
+		ajdoc.ClientMetadata = "wirepod-new-token"
+	}
+	json.Unmarshal([]byte(ajdoc.JsonDoc), &tokenJson)
+	var clientToken ClientToken
+	clientToken.IssuedAt = time.Now().Format(TimeFormat)
+	clientToken.ClientName = "idontcare"
+	clientToken.Hash = tokenHash
+	clientToken.AppId = "SDK"
+	tokenJson.ClientTokens = append(tokenJson.ClientTokens, clientToken)
+	jdocJsoc, err := json.Marshal(tokenJson)
+	ajdoc.JsonDoc = string(jdocJsoc)
+	ajdoc.DocVersion++
+	vars.WriteJdoc(vars.Thingifier(esnThing), "vic.AppTokens", ajdoc)
+
+	bundle.ClientToken = guid
+
+	currentTime := time.Now().Format(TimeFormat)
+	expiresAt := time.Now().AddDate(0, 1, 0).Format(TimeFormat)
+	logger.Println("Current time: " + currentTime)
+	logger.Println("Token expires: " + expiresAt)
+	requestUUID := uuid.New().String()
+	token := jwt.NewWithClaims(jwt.SigningMethodRS512, jwt.MapClaims{
+		"expires":      expiresAt,
+		"iat":          currentTime,
+		"permissions":  nil,
+		"requestor_id": esnThing,
+		"token_id":     requestUUID,
+		"token_type":   "user+robot",
+		"user_id":      userID,
+	})
+	rsaKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	tokenString, _ := token.SignedString(rsaKey)
+	bundle.Token = tokenString
+	return bundle
+}
+
+func decodeJWT(tokenString string) (string, string, error) {
+	token, _, err := new(ijwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		return "", "", fmt.Errorf("error parsing token: %w", err)
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		esnThing := claims["requestor_id"]
+		userID := claims["user_id"]
+		esnThingStr, ok := esnThing.(string)
+		if !ok {
+			return "", "", errors.New("token does not have an esn")
+		}
+		userIDStr, ok := userID.(string)
+		if !ok {
+			return "", "", errors.New("token does not have a user id")
+		}
+		return esnThingStr, userIDStr, nil
+	}
+
+	return "", "", errors.New("invalid token or claims")
 }
 
 func (s *TokenServer) AssociatePrimaryUser(ctx context.Context, req *tokenpb.AssociatePrimaryUserRequest) (*tokenpb.AssociatePrimaryUserResponse, error) {
-	// map[:authority:[10.36.222.41:8081] anki-app-key:[oDoa0quieSeir6goowai7f] anki-user-session:[2BxvbWMxp3xGafZAdE4ZWP6] content-type:[application/grpc] user-agent:[Victor/v2.1.0.6-wire_os2.1.0.6-dev-202410220043 grpc-go/1.40.0]]
-	fmt.Println("APU")
-	getTransportCredentials(ctx)
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		fmt.Println("METADATA: ", md)
-	} else {
-		fmt.Println("no metadata, shame...")
+	logger.Println("Token: Incoming Associate Primary User request")
+	token, cert, name, esn, err := getBotDetailsFromTokReq(ctx, req)
+	thing := esn
+	esn = strings.TrimPrefix(esn, "vic:")
+	if err != nil {
+		return nil, err
 	}
-	fmt.Println(req)
-	return nil, nil
+	if !sessions.IsSessionGood(token) {
+		return nil, errors.New("session_expired")
+	}
+	os.WriteFile(filepath.Join(vars.SessionCertsStorage, name+"_"+esn), cert, 0777)
+	bundle := GenJWT(sessions.GetUserIDFromSession(token), thing)
+	return &tokenpb.AssociatePrimaryUserResponse{
+		Data: bundle,
+	}, nil
 }
 
 func (s *TokenServer) AssociateSecondaryClient(ctx context.Context, req *tokenpb.AssociateSecondaryClientRequest) (*tokenpb.AssociateSecondaryClientResponse, error) {
-	fmt.Println("ASU")
-	fmt.Println(req)
-	return nil, nil
+	logger.Println("Token: Incoming Associate Secondary Client request")
+	token := req.UserSession
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("no request metadata")
+	}
+	jwtToken := md["anki-access-token"]
+	thing, userId, err := decodeJWT(jwtToken[0])
+	if err != nil {
+		return nil, err
+	}
+	if !sessions.IsSessionGood(token) {
+		return nil, errors.New("session_expired")
+	}
+	bundle := GenJWT(userId, thing)
+	if !users.IsRobotAssociatedWithAccount(thing, userId) {
+		fmt.Println("oh no, an 'associate secondary client' request without")
+	}
+	return &tokenpb.AssociateSecondaryClientResponse{
+		Data: bundle,
+	}, nil
 }
 
 func (s *TokenServer) RefreshToken(ctx context.Context, req *tokenpb.RefreshTokenRequest) (*tokenpb.RefreshTokenResponse, error) {
-	fmt.Println("RT")
-	fmt.Println(req)
-	return nil, nil
+	logger.Println("Token: Incoming Refresh Token request")
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("no request metadata")
+	}
+	jwtToken := md["anki-access-token"]
+	thing, userId, err := decodeJWT(jwtToken[0])
+	if err != nil {
+		return nil, err
+	}
+	bundle := GenJWT(userId, thing)
+	return &tokenpb.RefreshTokenResponse{
+		Data: bundle,
+	}, nil
 }
 
 func NewTokenServer() *TokenServer {

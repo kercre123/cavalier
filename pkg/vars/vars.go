@@ -5,6 +5,8 @@ import (
 	"math/big"
 )
 
+var SessionCertsStorage = "./session-certs"
+
 var IDLength = 23
 
 func GenerateID() string {

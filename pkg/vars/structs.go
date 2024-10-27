@@ -3,17 +3,16 @@ package vars
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 // -- ACCOUNTS --
 
 type Session struct {
-	SessionToken string    `json:"session_token"`
-	UserID       string    `json:"user_id"`
-	Scope        string    `json:"scope"`
-	TimeCreated  time.Time `json:"time_created"`
-	TimeExpires  time.Time `json:"time_expires"`
+	SessionToken string `json:"session_token"`
+	UserID       string `json:"user_id"`
+	Scope        string `json:"scope"`
+	TimeCreated  string `json:"time_created"`
+	TimeExpires  string `json:"time_expires"`
 }
 
 type User struct {
@@ -22,27 +21,27 @@ type User struct {
 	// uuid
 	DriveGuestID string `json:"drive_guest_id"`
 	// uuid
-	PlayerID             string    `json:"player_id"`
-	CreatedByAppName     string    `json:"created_by_app_name"`
-	CreatedByAppVersion  string    `json:"created_by_app_version"`
-	CreatedByAppPlatform string    `json:"created_by_app_platform"`
-	Dob                  string    `json:"dob"`
-	Email                string    `json:"email"`
-	FamilyName           string    `json:"family_name"`
-	Gender               string    `json:"gender"`
-	GivenName            string    `json:"given_name"`
-	Username             string    `json:"username"`
-	EmailIsVerified      bool      `json:"email_is_verified"`
-	EmailFailureCode     string    `json:"email_failure_code"`
-	EmailLang            string    `json:"email_lang"`
-	PasswordIsComplex    bool      `json:"password_is_complex"`
-	Status               string    `json:"status"`
-	TimeCreated          time.Time `json:"time_created"`
-	DeactivationReason   string    `json:"deactivation_reason"`
-	PurgeReason          string    `json:"purge_reason"`
-	EmailIsBlocked       bool      `json:"email_is_blocked"`
-	NoAutodelete         bool      `json:"no_autodelete"`
-	IsEmailAccount       bool      `json:"is_email_account"`
+	PlayerID             string `json:"player_id"`
+	CreatedByAppName     string `json:"created_by_app_name"`
+	CreatedByAppVersion  string `json:"created_by_app_version"`
+	CreatedByAppPlatform string `json:"created_by_app_platform"`
+	Dob                  string `json:"dob"`
+	Email                string `json:"email"`
+	FamilyName           string `json:"family_name"`
+	Gender               string `json:"gender"`
+	GivenName            string `json:"given_name"`
+	Username             string `json:"username"`
+	EmailIsVerified      bool   `json:"email_is_verified"`
+	EmailFailureCode     string `json:"email_failure_code"`
+	EmailLang            string `json:"email_lang"`
+	PasswordIsComplex    bool   `json:"password_is_complex"`
+	Status               string `json:"status"`
+	TimeCreated          string `json:"time_created"`
+	DeactivationReason   string `json:"deactivation_reason"`
+	PurgeReason          string `json:"purge_reason"`
+	EmailIsBlocked       bool   `json:"email_is_blocked"`
+	NoAutodelete         bool   `json:"no_autodelete"`
+	IsEmailAccount       bool   `json:"is_email_account"`
 }
 
 type Sessions struct {
@@ -62,10 +61,12 @@ type CreateUser struct {
 }
 
 type UserInDB struct {
-	Email    string `json:"email"`
-	UUID     string `json:"uuid"`
-	UserID   string `json:"userid"`
-	HashedPW string `json:"pw"`
+	Email    string   `json:"email"`
+	UUID     string   `json:"uuid"`
+	UserID   string   `json:"userid"`
+	HashedPW string   `json:"pw"`
+	DOB      string   `json:"dob"`
+	ESNs     []string `json:"esns"`
 }
 
 // -- GENERAL HTTP --
