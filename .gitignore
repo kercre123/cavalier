@@ -2,3 +2,6 @@ cert.crt
 cert.key
 user_database.db
 bot_database.db
+source.sh
+vosklib/
+vosk/

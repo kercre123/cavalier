@@ -1,7 +1,9 @@
 package main
 
 import (
+	processreqs "cavalier/pkg/preqs"
 	"cavalier/pkg/servers/accounts"
+	chipperserver "cavalier/pkg/servers/chipper"
 	"cavalier/pkg/servers/jdocs"
 	"cavalier/pkg/servers/token"
 	"cavalier/pkg/sessions"
@@ -14,13 +16,16 @@ import (
 	"net/http"
 	"os"
 
+	stt "cavalier/pkg/vosk"
+
+	chipperpb "github.com/digital-dream-labs/api/go/chipperpb"
 	"github.com/digital-dream-labs/api/go/jdocspb"
 	"github.com/digital-dream-labs/api/go/tokenpb"
 	grpcserver "github.com/digital-dream-labs/hugh/grpc/server"
 )
 
 func main() {
-	//vars.Init()
+	vars.Init()
 	dbConn, err := sql.Open("sqlite3", "./user_database.db")
 	if err != nil {
 		fmt.Println("Failed to open database connection:", err)
@@ -59,18 +64,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	// s, _ := chipperserver.New(
-	// 	chipperserver.WithIntentProcessor(p),
-	// 	chipperserver.WithKnowledgeGraphProcessor(p),
-	// 	chipperserver.WithIntentGraphProcessor(p),
-	// )
+	p, err := processreqs.New(stt.Init, stt.STT, stt.Name)
+	if err != nil {
+		panic(err)
+	}
+	s, _ := chipperserver.New(
+		chipperserver.WithIntentProcessor(p),
+		chipperserver.WithKnowledgeGraphProcessor(p),
+		chipperserver.WithIntentGraphProcessor(p),
+	)
 
 	tokenServer := token.NewTokenServer()
 	jdocsServer := jdocs.NewJdocsServer()
 	//jdocsserver.IniToJson()
 
-	//chipperpb.RegisterChipperGrpcServer(srv.Transport(), s)
+	chipperpb.RegisterChipperGrpcServer(srv.Transport(), s)
 	jdocspb.RegisterJdocsServer(srv.Transport(), jdocsServer)
 	tokenpb.RegisterTokenServer(srv.Transport(), tokenServer)
 
