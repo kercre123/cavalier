@@ -6,3 +6,4 @@ source.sh
 vosklib/
 vosk/
 main
+session-certs
