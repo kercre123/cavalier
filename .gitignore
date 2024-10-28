@@ -4,6 +4,6 @@ user_database.db
 bot_database.db
 source.sh
 vosklib/
-./vosk/
+./vosk
 main
 session-certs
