@@ -93,8 +93,8 @@ func GenJWT(userID, esnThing string) *tokenpb.TokenBundle {
 				finalTokens = append(finalTokens, tok)
 			}
 		}
+		tokenJson.ClientTokens = finalTokens
 	}
-	tokenJson.ClientTokens = finalTokens
 	jdocJsoc, err := json.Marshal(tokenJson)
 	ajdoc.JsonDoc = string(jdocJsoc)
 	ajdoc.DocVersion++
