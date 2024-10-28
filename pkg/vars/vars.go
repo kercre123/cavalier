@@ -13,8 +13,13 @@ var (
 	SessionCertEnv = "SESSION_CERT_STORAGE"
 	HoundKeyEnv    = "HOUND_KEY"
 	HoundIDEnv     = "HOUND_ID"
-	WeatherKey     = "WEATHER_KEY"
+	WeatherKeyEnv  = "WEATHER_KEY"
+	KeyEnv         = "KEY"
+	CertEnv        = "CERT"
 )
+
+var CertPath string
+var KeyPath string
 
 var SessionCertsStorage = "./session-certs"
 
@@ -105,6 +110,8 @@ func GenerateID() string {
 }
 
 func Init() {
+	KeyPath = os.Getenv("KEY")
+	CertPath = os.Getenv("CERT")
 	os.MkdirAll(SessionCertsStorage, 0777)
 	APIConfig.STT.Language = "en-US"
 	APIConfig.STT.Service = "vosk"
@@ -113,6 +120,6 @@ func Init() {
 	APIConfig.Knowledge.Key = os.Getenv(HoundKeyEnv)
 	APIConfig.Knowledge.ID = os.Getenv(HoundIDEnv)
 	APIConfig.Weather.Enable = true
-	APIConfig.Weather.Key = os.Getenv(WeatherKey)
+	APIConfig.Weather.Key = os.Getenv(WeatherKeyEnv)
 	APIConfig.Weather.Provider = "weatherapi.com"
 }

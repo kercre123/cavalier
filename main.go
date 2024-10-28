@@ -47,8 +47,14 @@ func main() {
 	vars.InitJdocsDB(dbConnJdocs)
 	sessions.Init()
 
-	certPub, _ := os.ReadFile("./cert.crt")
-	certPriv, _ := os.ReadFile("./cert.key")
+	certPub, err := os.ReadFile(vars.CertPath)
+	if err != nil {
+		panic(err)
+	}
+	certPriv, _ := os.ReadFile(vars.KeyPath)
+	if err != nil {
+		panic(err)
+	}
 	cert, err := tls.X509KeyPair(certPub, certPriv)
 	if err != nil {
 		panic(err)
