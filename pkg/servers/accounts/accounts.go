@@ -24,7 +24,7 @@ func getLimiter(ip string) *rate.Limiter {
 	defer mu.Unlock()
 	limiter, exists := visitors[ip]
 	if !exists {
-		limiter = rate.NewLimiter(1, 5)
+		limiter = rate.NewLimiter(3, 10) // 3 requests per second, burst up to 10
 		visitors[ip] = limiter
 	}
 	return limiter
@@ -44,7 +44,24 @@ func rateLimitMiddleware(next http.Handler) http.Handler {
 
 func maxRequestSizeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// limit the request body to 1MB
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB = 2^20 bytes
+		next.ServeHTTP(w, r)
+	})
+}
+
+// CORS bs
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*") // allow all origins (change "*" to specific domain if needed)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -118,15 +135,15 @@ func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				w.Write(cert)
 			} else {
-				vars.HTTPError(w, vars.CodeSessionCertNotFound, "cert not found", 500)
+				vars.HTTPError(w, "missing_cert", "cert not found", 500)
 			}
 		} else {
-			vars.HTTPError(w, vars.CodeSessionCertNotFound, "cert not found", 500)
+			vars.HTTPError(w, "missing_cert", "cert not found", 500)
 		}
 	}
 }
 
 func main() {
-	http.Handle("/v1/", maxRequestSizeMiddleware(rateLimitMiddleware(http.HandlerFunc(AccountsAPI))))
+	http.Handle("/v1/", maxRequestSizeMiddleware(rateLimitMiddleware(corsMiddleware(http.HandlerFunc(AccountsAPI)))))
 	http.ListenAndServe(":8080", nil)
 }
