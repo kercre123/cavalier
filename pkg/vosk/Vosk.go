@@ -13,7 +13,6 @@ import (
 	"cavalier/pkg/vars"
 
 	vosk "github.com/kercre123/vosk-api/go"
-	"github.com/kercre123/wire-pod/chipper/pkg/logger"
 )
 
 var GrammerEnable bool = false
@@ -42,7 +41,7 @@ func Init() error {
 	}
 	vosk.SetLogLevel(-1)
 	if modelLoaded {
-		logger.Println("A model was already loaded, freeing all recognizers and model")
+		fmt.Println("A model was already loaded, freeing all recognizers and model")
 		for ind, _ := range grmRecs {
 			grmRecs[ind].Rec.Free()
 		}
@@ -62,19 +61,15 @@ func Init() error {
 		fmt.Println("Path does not exist: " + modelPath)
 		return err
 	}
-	logger.Println("Opening VOSK model (" + modelPath + ")")
+	fmt.Println("Opening VOSK model (" + modelPath + ")")
 	aModel, err := vosk.NewModel(modelPath)
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
 	model = aModel
-	if GrammerEnable {
-		logger.Println("Initializing grammer list")
-		Grammer = GetGrammerList(vars.APIConfig.STT.Language)
-	}
 
-	logger.Println("Initializing VOSK recognizers")
+	fmt.Println("Initializing VOSK recognizers")
 	if GrammerEnable {
 		grmRecognizer, err := vosk.NewRecognizerGrm(aModel, 16000.0, Grammer)
 		if err != nil {
@@ -94,20 +89,20 @@ func Init() error {
 		log.Fatal(err)
 	}
 	modelLoaded = true
-	logger.Println("VOSK initiated successfully")
+	fmt.Println("VOSK initiated successfully")
 	runTest()
 	return nil
 }
 
 func runTest() {
 	// make sure recognizer is all loaded into RAM
-	logger.Println("Running recognizer test")
+	fmt.Println("Running recognizer test")
 	var withGrm bool
 	if GrammerEnable {
-		logger.Println("Using grammer-optimized recognizer")
+		fmt.Println("Using grammer-optimized recognizer")
 		withGrm = true
 	} else {
-		logger.Println("Using general recognizer")
+		fmt.Println("Using general recognizer")
 		withGrm = false
 	}
 	rec, recind := getRec(withGrm)
@@ -128,11 +123,11 @@ func runTest() {
 	}
 	transcribedText := jres["text"].(string)
 	tTime := time.Now().Sub(cTime)
-	logger.Println("Text (from test):", transcribedText)
+	fmt.Println("Text (from test):", transcribedText)
 	if tTime.Seconds() > 3 {
-		logger.Println("Vosk test took a while, performance may be degraded. (" + fmt.Sprint(tTime) + ")")
+		fmt.Println("Vosk test took a while, performance may be degraded. (" + fmt.Sprint(tTime) + ")")
 	}
-	logger.Println("Vosk test successful! (Took " + fmt.Sprint(tTime) + ")")
+	fmt.Println("Vosk test successful! (Took " + fmt.Sprint(tTime) + ")")
 
 }
 
@@ -179,13 +174,13 @@ func getRec(withGrm bool) (*vosk.VoskRecognizer, int) {
 }
 
 func STT(req sr.SpeechRequest) (string, error) {
-	logger.Println("(Bot " + req.Device + ", Vosk) Processing...")
+	fmt.Println("(Bot " + req.Device + ", Vosk) Processing...")
 	var withGrm bool
 	if (vars.APIConfig.Knowledge.IntentGraph || req.IsKG) || !GrammerEnable {
-		logger.Println("Using general recognizer")
+		fmt.Println("Using general recognizer")
 		withGrm = false
 	} else {
-		logger.Println("Using grammer-optimized recognizer")
+		fmt.Println("Using grammer-optimized recognizer")
 		withGrm = true
 	}
 	rec, recind := getRec(withGrm)
@@ -213,6 +208,6 @@ func STT(req sr.SpeechRequest) (string, error) {
 		gpRecs[recind].InUse = false
 	}
 	transcribedText := jres["text"].(string)
-	logger.Println("Bot " + req.Device + " Transcribed text: " + transcribedText)
+	fmt.Println("Bot " + req.Device + " Transcribed text: " + transcribedText)
 	return transcribedText, nil
 }

@@ -22,7 +22,6 @@ import (
 	"github.com/digital-dream-labs/api/go/tokenpb"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	"github.com/kercre123/wire-pod/chipper/pkg/logger"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -86,6 +85,16 @@ func GenJWT(userID, esnThing string) *tokenpb.TokenBundle {
 	clientToken.Hash = tokenHash
 	clientToken.AppId = "SDK"
 	tokenJson.ClientTokens = append(tokenJson.ClientTokens, clientToken)
+	var finalTokens []ClientToken
+	// limit tokens to 6, don't fill the db
+	if len(tokenJson.ClientTokens) == 6 {
+		for i, tok := range tokenJson.ClientTokens {
+			if i != 0 {
+				finalTokens = append(finalTokens, tok)
+			}
+		}
+	}
+	tokenJson.ClientTokens = finalTokens
 	jdocJsoc, err := json.Marshal(tokenJson)
 	ajdoc.JsonDoc = string(jdocJsoc)
 	ajdoc.DocVersion++
@@ -95,8 +104,8 @@ func GenJWT(userID, esnThing string) *tokenpb.TokenBundle {
 
 	currentTime := time.Now().Format(TimeFormat)
 	expiresAt := time.Now().AddDate(0, 1, 0).Format(TimeFormat)
-	logger.Println("Current time: " + currentTime)
-	logger.Println("Token expires: " + expiresAt)
+	fmt.Println("Current time: " + currentTime)
+	fmt.Println("Token expires: " + expiresAt)
 	requestUUID := uuid.New().String()
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, jwt.MapClaims{
 		"expires":      expiresAt,
@@ -176,6 +185,8 @@ func (s *TokenServer) AssociateSecondaryClient(ctx context.Context, req *tokenpb
 	}, nil
 }
 
+// INSECURE!
+// i don't have a way to verify the incoming JWT, unless i save the generated key from the primary request.. that's an idea
 func (s *TokenServer) RefreshToken(ctx context.Context, req *tokenpb.RefreshTokenRequest) (*tokenpb.RefreshTokenResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {

@@ -1,12 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"time"
 
 	"cavalier/pkg/vtt"
 
 	pb "github.com/digital-dream-labs/api/go/chipperpb"
-	"github.com/kercre123/wire-pod/chipper/pkg/logger"
 )
 
 // StreamingKnowledgeGraph is used for knowledge graph request/responses
@@ -14,8 +14,8 @@ func (s *Server) StreamingKnowledgeGraph(stream pb.ChipperGrpc_StreamingKnowledg
 	recvTime := time.Now()
 	req, err := stream.Recv()
 	if err != nil {
-		logger.Println("Knowledge graph error")
-		logger.Println(err)
+		fmt.Println("Knowledge graph error")
+		fmt.Println(err)
 
 		return err
 	}
@@ -33,8 +33,8 @@ func (s *Server) StreamingKnowledgeGraph(stream pb.ChipperGrpc_StreamingKnowledg
 			// Mode:
 		},
 	); err != nil {
-		logger.Println("Knowledge graph error")
-		logger.Println(err)
+		fmt.Println("Knowledge graph error")
+		fmt.Println(err)
 		return err
 	}
 

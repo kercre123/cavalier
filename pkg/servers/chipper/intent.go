@@ -1,12 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"time"
 
 	"cavalier/pkg/vtt"
 
 	pb "github.com/digital-dream-labs/api/go/chipperpb"
-	"github.com/kercre123/wire-pod/chipper/pkg/logger"
 )
 
 // StreamingIntent handles voice streams
@@ -15,8 +15,8 @@ func (s *Server) StreamingIntent(stream pb.ChipperGrpc_StreamingIntentServer) er
 
 	req, err := stream.Recv()
 	if err != nil {
-		logger.Println("Intent error")
-		logger.Println(err)
+		fmt.Println("Intent error")
+		fmt.Println(err)
 
 		return err
 	}
@@ -33,8 +33,8 @@ func (s *Server) StreamingIntent(stream pb.ChipperGrpc_StreamingIntentServer) er
 			// Mode:
 		},
 	); err != nil {
-		logger.Println("Intent error")
-		logger.Println(err)
+		fmt.Println("Intent error")
+		fmt.Println(err)
 		return err
 	}
 

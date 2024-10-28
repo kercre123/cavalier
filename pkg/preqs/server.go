@@ -5,8 +5,6 @@ import (
 
 	sr "cavalier/pkg/speechrequest"
 	"cavalier/pkg/vars"
-
-	"github.com/kercre123/wire-pod/chipper/pkg/logger"
 )
 
 // Server stores the config
@@ -46,7 +44,7 @@ func New(InitFunc func() error, SttHandler interface{}, voiceProcessor string) (
 	}
 	sttLanguage = vars.APIConfig.STT.Language
 	vars.IntentList, _ = vars.LoadIntents()
-	logger.Println("Initiating " + voiceProcessor + " voice processor with language " + sttLanguage)
+	fmt.Println("Initiating " + voiceProcessor + " voice processor with language " + sttLanguage)
 	vars.SttInitFunc = InitFunc
 	err := InitFunc()
 	if err != nil {

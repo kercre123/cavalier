@@ -11,7 +11,43 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+
+	"golang.org/x/time/rate"
 )
+
+var visitors = make(map[string]*rate.Limiter)
+var mu sync.Mutex
+
+func getLimiter(ip string) *rate.Limiter {
+	mu.Lock()
+	defer mu.Unlock()
+	limiter, exists := visitors[ip]
+	if !exists {
+		limiter = rate.NewLimiter(1, 5)
+		visitors[ip] = limiter
+	}
+	return limiter
+}
+
+func rateLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := r.RemoteAddr
+		limiter := getLimiter(ip)
+		if !limiter.Allow() {
+			vars.HTTPError(w, "rate limit exceeded", vars.CodeTooManyRequests, http.StatusTooManyRequests)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func maxRequestSizeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB = 2^20 bytes
+		next.ServeHTTP(w, r)
+	})
+}
 
 func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL.Path)
@@ -82,10 +118,15 @@ func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				w.Write(cert)
 			} else {
-				vars.HTTPError(w, "missing_cert", "cert not found", 500)
+				vars.HTTPError(w, vars.CodeSessionCertNotFound, "cert not found", 500)
 			}
 		} else {
-			vars.HTTPError(w, "missing_cert", "cert not found", 500)
+			vars.HTTPError(w, vars.CodeSessionCertNotFound, "cert not found", 500)
 		}
 	}
+}
+
+func main() {
+	http.Handle("/v1/", maxRequestSizeMiddleware(rateLimitMiddleware(http.HandlerFunc(AccountsAPI))))
+	http.ListenAndServe(":8080", nil)
 }

@@ -3,10 +3,9 @@ package vars
 import (
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
-
-	"github.com/kercre123/wire-pod/chipper/pkg/logger"
 )
 
 var (
@@ -83,15 +82,15 @@ func LoadIntents() ([]JsonIntent, error) {
 	if err == nil {
 		err = json.Unmarshal(jsonFile, &jsonIntents)
 		if err != nil {
-			logger.Println("Failed to load intents: " + err.Error())
+			fmt.Println("Failed to load intents: " + err.Error())
 		}
 
 		// for _, element := range jsonIntents {
-		// 	//logger.Println("Loading intent " + strconv.Itoa(index) + " --> " + element.Name + "( " + strconv.Itoa(len(element.Keyphrases)) + " keyphrases )")
+		// 	//fmt.Println("Loading intent " + strconv.Itoa(index) + " --> " + element.Name + "( " + strconv.Itoa(len(element.Keyphrases)) + " keyphrases )")
 		// 	intents = append(intents, element.Name)
 		// 	matches = append(matches, element.Keyphrases)
 		// }
-		// logger.Println("Loaded " + strconv.Itoa(len(jsonIntents)) + " intents and " + strconv.Itoa(len(matches)) + " matches (language: " + APIConfig.STT.Language + ")")
+		// fmt.Println("Loaded " + strconv.Itoa(len(jsonIntents)) + " intents and " + strconv.Itoa(len(matches)) + " matches (language: " + APIConfig.STT.Language + ")")
 	}
 	return jsonIntents, err
 }

@@ -16,6 +16,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/soundhound/houndify-sdk-go v0.3.5
 	golang.org/x/crypto v0.28.0
+	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	google.golang.org/grpc v1.60.0
 )
 
