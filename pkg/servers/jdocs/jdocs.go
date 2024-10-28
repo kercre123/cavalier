@@ -56,6 +56,12 @@ func (s *JdocServer) ReadDocs(ctx context.Context, req *jdocspb.ReadDocsReq) (*j
 		} else {
 			resp.Items = append(resp.Items, &jdocspb.ReadDocsResp_Item{
 				Status: jdocspb.ReadDocsResp_NOT_FOUND,
+				Doc: &jdocspb.Jdoc{
+					DocVersion:     0,
+					FmtVersion:     0,
+					ClientMetadata: "idontcare",
+					JsonDoc:        "{}",
+				},
 			})
 		}
 	}
