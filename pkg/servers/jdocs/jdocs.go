@@ -5,6 +5,7 @@ import (
 	"cavalier/pkg/vars"
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/digital-dream-labs/api/go/jdocspb"
 )
@@ -14,7 +15,9 @@ type JdocServer struct {
 }
 
 func (s *JdocServer) WriteDoc(ctx context.Context, req *jdocspb.WriteDocReq) (*jdocspb.WriteDocResp, error) {
+	fmt.Println("writedoc")
 	if !users.IsRobotAssociatedWithAccount(req.Thing, req.UserId) {
+		fmt.Println("not associated with account")
 		return nil, errors.New("not authorized")
 	}
 	vars.WriteJdoc(req.Thing, req.DocName, vars.AJdoc{
@@ -23,6 +26,7 @@ func (s *JdocServer) WriteDoc(ctx context.Context, req *jdocspb.WriteDocReq) (*j
 		ClientMetadata: req.Doc.ClientMetadata,
 		JsonDoc:        req.Doc.JsonDoc,
 	})
+	fmt.Println(req.Doc.JsonDoc)
 	return &jdocspb.WriteDocResp{
 		Status:           jdocspb.WriteDocResp_ACCEPTED,
 		LatestDocVersion: req.Doc.DocVersion,
@@ -30,7 +34,9 @@ func (s *JdocServer) WriteDoc(ctx context.Context, req *jdocspb.WriteDocReq) (*j
 }
 
 func (s *JdocServer) ReadDocs(ctx context.Context, req *jdocspb.ReadDocsReq) (*jdocspb.ReadDocsResp, error) {
+	fmt.Println("readdoc")
 	if !users.IsRobotAssociatedWithAccount(req.Thing, req.UserId) {
+		fmt.Println("not associated with account")
 		return nil, errors.New("not authorized")
 	}
 	var resp jdocspb.ReadDocsResp
@@ -53,6 +59,7 @@ func (s *JdocServer) ReadDocs(ctx context.Context, req *jdocspb.ReadDocsReq) (*j
 			})
 		}
 	}
+	fmt.Println(&resp)
 	return &resp, nil
 }
 
