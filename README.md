@@ -35,8 +35,8 @@ Can only be used with dev bots. I have an instance up at vicapi.pvic.xyz. My CFW
 2. Create a source.sh file with the following:
 
 ```
-export CERT=<fullchain.pem>
-export KEY=<privkey.pem>
+export CERT=<path/to/fullchain.pem>
+export KEY=<path/to/privkey.pem>
 export WEATHER_KEY=<weatherapi.com key>
 export HOUND_KEY=<houndify client key>
 export HOUND_ID=<houndify client id>
