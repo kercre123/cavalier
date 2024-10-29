@@ -44,8 +44,7 @@ func rateLimitMiddleware(next http.Handler) http.Handler {
 
 func maxRequestSizeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// limit the request body to 1MB
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB = 2^20 bytes
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -84,7 +83,7 @@ func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		user, err := users.AuthUser(creds.Username, creds.Password)
 		if err != nil {
-			vars.HTTPError(w, err.Error(), err.Error(), 400)
+			vars.HTTPError(w, err.Error(), err.Error(), http.StatusForbidden)
 			return
 		}
 		fullUser := vars.User{
@@ -123,7 +122,7 @@ func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		err = users.CreateUser(creds.Username, creds.Password, creds.DOB)
 		if err != nil {
-			vars.HTTPError(w, err.Error(), err.Error(), 400)
+			vars.HTTPError(w, err.Error(), err.Error(), http.StatusForbidden)
 			return
 		}
 		vars.HTTPSuccess(w, "account created")
