@@ -4,7 +4,7 @@ Pretty much fully functional cloud software for the Anki/DDL Vector robot.
 
 Still somewhat experimental.
 
-Can only be used with dev bots. I have an instance up at vicapi.pvic.xyz. My CFW ([victor](https://github.com/kercre123/victor)) is pointed to it.
+Can only be used with dev bots. I have an instance up at vicapi.pvic.xyz. My CFW ([victor](https://github.com/kercre123/victor)) is pointed to it. Vector Web Setup for it: https://v.pvic.xyz
 
 ## What is implemented?
 
