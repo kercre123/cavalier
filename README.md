@@ -1,89 +1,45 @@
 # cavalier
 
-This will maybe be a new Vector voice server implementation built from the ground-up to be able to run in the cloud rather than on a local device on the network.
+Pretty much fully functional cloud software for the Anki/DDL Vector robot.
 
-This is mostly for my personal experiementation with firmwares below 1.2 which don't work with the latest vic-cloud code, so I can point them to a public cloud (as they require valid TLS certs).
+Still somewhat experimental.
 
-Though, i'd like to be able to create something enterprise-ready which DDL could easily set up without much hassle if they wanted to.
+Can only be used with dev bots. I have an instance up at vicapi.pvic.xyz. My CFW ([victor](https://github.com/kercre123/victor)) is pointed to it.
 
-Goals:
+## What is implemented?
 
-- Database storage (JSON storage an option as well)
-- Accounts + working /v1/sessions
-- Configs for different firmware versions
-- TLS cert refresh
-- VOSK 'n VAD
+- Accounts API (at port 8080)
+- A sessions manager which expires tokens
+- Full token and jdocs implementations (port 8081)
+- SQLite3 storage for user credentials and bot jdocs
+- Voice commands (chipper code copied from wire-pod) (also port 8081)
+   - Weather, Houndify
+- Rate limits
 
-Notes:
+## Any differences between this and the DDL server software?
 
-- It's fine to use wire-pod components (speechrequest, the STT impls)
+- The accounts endpoints are a bit different
+  - /v1/sessions, /v1/create_user
+- JWT tokens are not verified. This (I think) involves needing access to the per-bot cloud key database.
 
-## What the accounts API does
-- sends:
+## TODO
+- Email verification
+- Reset password (function is there, just not in the API)
+- More languages
+- OpenAI?
+- Crash dump upload (STS)
+
+## how 2 run?
+
+1. Put libvosk.so and vosk-api.h in a new directory called vosklib (can be downloaded from [here](https://github.com/alphacep/vosk-api/releases/tag/v0.3.45))
+2. Create a source.sh file with the following:
 
 ```
-{
-    "username": "redacted@gmail.com",
-    "password": "redacted"
-}
+export CERT=<fullchain.pem>
+export KEY=<privkey.pem>
+export WEATHER_KEY=<weatherapi.com key>
+export HOUND_KEY=<houndify client key>
+export HOUND_ID=<houndify client id>
 ```
-
-- receives: 
-```
-{
-    "session": {
-        "session_token": "redacted",
-        "user_id": "redacted",
-        "scope": "user",
-        "time_created": "2024-10-26T00:26:57.174620948Z",
-        "time_expires": "2025-10-26T00:26:57.174600148Z"
-    },
-    "user": {
-        "user_id": "redacted",
-        "drive_guest_id": "b80a7379-211a-4d7c-8440-01aa954635e1",
-        "player_id": "b80a7379-211a-4d7c-8440-01aa954635e1",
-        "created_by_app_name": null,
-        "created_by_app_version": null,
-        "created_by_app_platform": null,
-        "dob": "1970-01-01",
-        "email": "redacted@gmail.com",
-        "family_name": null,
-        "gender": null,
-        "given_name": null,
-        "username": "redacted@gmail.com",
-        "email_is_verified": true,
-        "email_failure_code": null,
-        "email_lang": null,
-        "password_is_complex": true,
-        "status": "active",
-        "time_created": "2024-10-24T18:42:56Z",
-        "deactivation_reason": null,
-        "purge_reason": null,
-        "email_is_blocked": false,
-        "no_autodelete": false,
-        "is_email_account": true
-    }
-}
-```
-
-- if bad creds:
-```
-{
-  "code": "server_failure",
-  "message": "An unexpected server error occurred",
-  "status": "error"
-}
-```
-
-- components:
-  1. sessions manager
-       - creates session, expires when needed
-  2. db comms
-  3. ???
-  4. profit (or not since this is an open-source project)
-
-Why can't wire-pod run in the cloud?
-
-- wire-pod relies on the IP addresses of incoming connections a lot and directly connects to robots via the SDK API. This cannot be done over the network without special configuration.
-- Does wire-pod need to communicate with the bot over the bot's API? Well, something has to pull Jdocs from the robot in order to force the escape-pod token to be added to the store.
-- **cavalier will not be compatible with production bots due to the workarounds required for escapepod firmware to consistently work with wire-pod.**
+3. Run start.sh. It will build the program and run it. If you are just running the program, make sure source.sh is sourced and LD_LIBRARY_PATH includes vosklib.
+4. I use nginx as a proxy for the accounts API, and leave the rest not behind a proxy.
