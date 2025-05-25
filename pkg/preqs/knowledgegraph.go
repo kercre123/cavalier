@@ -79,7 +79,7 @@ func KgRequest(req *vtt.KnowledgeGraphRequest, speechReq sr.SpeechRequest) strin
 func (s *Server) ProcessKnowledgeGraph(req *vtt.KnowledgeGraphRequest) (*vtt.KnowledgeGraphResponse, error) {
 	InitKnowledge()
 	speechReq := sr.ReqToSpeechRequest(req)
-	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider != "houndify" {
+	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider == "houndify" {
 		apiResponse := KgRequest(req, speechReq)
 		kg := pb.KnowledgeGraphResponse{
 			Session:     req.Session,
