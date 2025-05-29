@@ -2,9 +2,8 @@ package token
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -18,9 +17,7 @@ import (
 	"cavalier/pkg/users"
 	"cavalier/pkg/vars"
 
-	ijwt "github.com/dgrijalva/jwt-go"
 	"github.com/digital-dream-labs/api/go/tokenpb"
-	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -36,7 +33,6 @@ var (
 	ExpirationTime = time.Hour * 24
 )
 
-// returns session token, session cert, robot name ("Vector-####"), then thing ("vic:esn")
 func getBotDetailsFromTokReq(ctx context.Context, req *tokenpb.AssociatePrimaryUserRequest) (token string, cert []byte, name string, esn string, err error) {
 	p, ok := peer.FromContext(ctx)
 	if !ok {
@@ -57,8 +53,6 @@ func getBotDetailsFromTokReq(ctx context.Context, req *tokenpb.AssociatePrimaryU
 	if err == nil {
 		name = certParsed.Issuer.CommonName
 	}
-
-	// get metadata
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return "", nil, "", "", errors.New("no metadata found in context")
@@ -69,7 +63,6 @@ func getBotDetailsFromTokReq(ctx context.Context, req *tokenpb.AssociatePrimaryU
 
 func GenJWT(userID, esnThing string) *tokenpb.TokenBundle {
 	bundle := &tokenpb.TokenBundle{}
-
 	var tokenJson ClientTokenManager
 	guid, tokenHash, _ := CreateTokenAndHashedToken()
 	ajdoc, err := vars.ReadJdoc(vars.Thingifier(esnThing), "vic.AppTokens")
@@ -85,63 +78,58 @@ func GenJWT(userID, esnThing string) *tokenpb.TokenBundle {
 	clientToken.Hash = tokenHash
 	clientToken.AppId = "SDK"
 	tokenJson.ClientTokens = append(tokenJson.ClientTokens, clientToken)
-	var finalTokens []ClientToken
-	// limit tokens to 6, don't fill the db
 	if len(tokenJson.ClientTokens) == 6 {
-		for i, tok := range tokenJson.ClientTokens {
-			if i != 0 {
-				finalTokens = append(finalTokens, tok)
-			}
-		}
+		finalTokens := tokenJson.ClientTokens[1:]
 		tokenJson.ClientTokens = finalTokens
 	}
-	jdocJsoc, err := json.Marshal(tokenJson)
+	jdocJsoc, _ := json.Marshal(tokenJson)
 	ajdoc.JsonDoc = string(jdocJsoc)
 	ajdoc.DocVersion++
 	vars.WriteJdoc(vars.Thingifier(esnThing), "vic.AppTokens", ajdoc)
-
 	bundle.ClientToken = guid
 
-	currentTime := time.Now().Format(TimeFormat)
 	expiresAt := time.Now().AddDate(0, 1, 0).Format(TimeFormat)
-	fmt.Println("Current time: " + currentTime)
-	fmt.Println("Token expires: " + expiresAt)
 	requestUUID := uuid.New().String()
-	token := jwt.NewWithClaims(jwt.SigningMethodRS512, jwt.MapClaims{
+	jwtHeader := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none","typ":"JWT"}`))
+	payloadMap := map[string]interface{}{
 		"expires":      expiresAt,
-		"iat":          currentTime,
+		"iat":          time.Now().Format(TimeFormat),
 		"permissions":  nil,
 		"requestor_id": esnThing,
 		"token_id":     requestUUID,
 		"token_type":   "user+robot",
 		"user_id":      userID,
-	})
-	rsaKey, _ := rsa.GenerateKey(rand.Reader, 1024)
-	tokenString, _ := token.SignedString(rsaKey)
-	bundle.Token = tokenString
+	}
+	payloadBytes, _ := json.Marshal(payloadMap)
+	jwtPayload := base64.RawURLEncoding.EncodeToString(payloadBytes)
+	jwtToken := jwtHeader + "." + jwtPayload + "."
+	bundle.Token = jwtToken
 	return bundle
 }
 
 func decodeJWT(tokenString string) (string, string, error) {
-	token, _, err := new(ijwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	parts := strings.Split(tokenString, ".")
+	if len(parts) < 2 {
+		return "", "", errors.New("invalid token structure")
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return "", "", fmt.Errorf("error parsing token: %w", err)
+		return "", "", fmt.Errorf("payload decode error: %w", err)
 	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		esnThing := claims["requestor_id"]
-		userID := claims["user_id"]
-		esnThingStr, ok := esnThing.(string)
-		if !ok {
-			return "", "", errors.New("token does not have an esn")
-		}
-		userIDStr, ok := userID.(string)
-		if !ok {
-			return "", "", errors.New("token does not have a user id")
-		}
-		return esnThingStr, userIDStr, nil
+	var payload map[string]interface{}
+	err = json.Unmarshal(payloadBytes, &payload)
+	if err != nil {
+		return "", "", fmt.Errorf("json unmarshal error: %w", err)
 	}
-
-	return "", "", errors.New("invalid token or claims")
+	esnThing, ok := payload["requestor_id"].(string)
+	if !ok {
+		return "", "", errors.New("missing requestor_id")
+	}
+	userID, ok := payload["user_id"].(string)
+	if !ok {
+		return "", "", errors.New("missing user_id")
+	}
+	return esnThing, userID, nil
 }
 
 func (s *TokenServer) AssociatePrimaryUser(ctx context.Context, req *tokenpb.AssociatePrimaryUserRequest) (*tokenpb.AssociatePrimaryUserResponse, error) {
@@ -157,9 +145,7 @@ func (s *TokenServer) AssociatePrimaryUser(ctx context.Context, req *tokenpb.Ass
 	os.WriteFile(filepath.Join(vars.SessionCertsStorage, name+"_"+esn), cert, 0777)
 	bundle := GenJWT(sessions.GetUserIDFromSession(token), thing)
 	users.AssociateRobotWithAccount(thing, sessions.GetUserIDFromSession(token))
-	return &tokenpb.AssociatePrimaryUserResponse{
-		Data: bundle,
-	}, nil
+	return &tokenpb.AssociatePrimaryUserResponse{Data: bundle}, nil
 }
 
 func (s *TokenServer) AssociateSecondaryClient(ctx context.Context, req *tokenpb.AssociateSecondaryClientRequest) (*tokenpb.AssociateSecondaryClientResponse, error) {
@@ -180,13 +166,9 @@ func (s *TokenServer) AssociateSecondaryClient(ctx context.Context, req *tokenpb
 		return nil, errors.New("session_expired")
 	}
 	bundle := GenJWT(userId, thing)
-	return &tokenpb.AssociateSecondaryClientResponse{
-		Data: bundle,
-	}, nil
+	return &tokenpb.AssociateSecondaryClientResponse{Data: bundle}, nil
 }
 
-// INSECURE!
-// i don't have a way to verify the incoming JWT, unless i save the generated key from the primary request.. that's an idea
 func (s *TokenServer) RefreshToken(ctx context.Context, req *tokenpb.RefreshTokenRequest) (*tokenpb.RefreshTokenResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -201,9 +183,7 @@ func (s *TokenServer) RefreshToken(ctx context.Context, req *tokenpb.RefreshToke
 		return nil, errors.New("bot not associated with account")
 	}
 	bundle := GenJWT(userId, thing)
-	return &tokenpb.RefreshTokenResponse{
-		Data: bundle,
-	}, nil
+	return &tokenpb.RefreshTokenResponse{Data: bundle}, nil
 }
 
 func NewTokenServer() *TokenServer {
