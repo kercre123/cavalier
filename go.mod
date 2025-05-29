@@ -3,11 +3,9 @@ module cavalier
 go 1.23.2
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/digital-dream-labs/api v0.0.0-20210824232136-8cc90c1bb12c
 	github.com/digital-dream-labs/hugh v0.0.0-20210210154335-f4159b9fcd5f
 	github.com/digital-dream-labs/opus-go v0.0.0-20201230195736-934a8a9e0a1e
-	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/kercre123/vosk-api/go v1.0.2
 	github.com/kercre123/wire-pod/chipper v1.5.6
