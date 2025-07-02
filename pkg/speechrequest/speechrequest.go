@@ -181,7 +181,7 @@ func ReqToSpeechRequest(req interface{}) SpeechRequest {
 	var request SpeechRequest
 	request.PrevLen = 0
 	var err error
-	request.Aproc, err = audioproc.NewAudioProcessor(16000, 550, 3)
+	request.Aproc, err = audioproc.NewAudioProcessor(16000, 550, 2)
 	if err != nil {
 		fmt.Println(err)
 	}

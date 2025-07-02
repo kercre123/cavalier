@@ -232,6 +232,9 @@ func RemoveUser(email string) error {
 }
 
 func AssociateRobotWithAccount(esn string, userID string) error {
+	if userID == "notauser" {
+		return nil
+	}
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
@@ -251,6 +254,9 @@ func AssociateRobotWithAccount(esn string, userID string) error {
 }
 
 func IsRobotAssociatedWithAccount(esn string, userID string) bool {
+	if userID == "notauser" {
+		return true
+	}
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 

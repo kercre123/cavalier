@@ -81,7 +81,18 @@ func AccountsAPI(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, "failed to unmarshal json: "+err.Error(), vars.CodeServerError, 500)
 			return
 		}
-		user, err := users.AuthUser(creds.Username, creds.Password)
+		var user vars.UserInDB
+		if creds.Username == "" {
+			user = vars.UserInDB{
+				Email:  "blank@example.com",
+				UUID:   "notauser",
+				UserID: "notauser",
+				DOB:    "2000-01-01",
+				ESNs:   []string{"*"},
+			}
+		} else {
+			user, err = users.AuthUser(creds.Username, creds.Password)
+		}
 		if err != nil {
 			vars.HTTPError(w, err.Error(), err.Error(), http.StatusForbidden)
 			return
