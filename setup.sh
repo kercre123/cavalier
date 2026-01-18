@@ -5,6 +5,11 @@ set -e
 voskX8664URL="https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-linux-x86_64-0.3.45.zip"
 voskARM64URL="https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-linux-aarch64-0.3.45.zip"
 
+if [[ ! -d cmd ]]; then
+	echo "Run this in the correct directory."
+	exit 1
+fi
+
 function sttServicePrompt() {
     echo
     echo "Which speech-to-text service would you like to use?"
