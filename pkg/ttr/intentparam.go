@@ -8,7 +8,7 @@ import (
 
 	"cavalier/pkg/vars"
 
-	lcztn "github.com/kercre123/wire-pod/chipper/pkg/wirepod/localization"
+	lcztn "cavalier/pkg/localization"
 )
 
 // stt
@@ -129,6 +129,8 @@ func ParamChecker(req interface{}, intent string, speechText string, botSerial s
 			intentParamValue = "COLOR_GREEN"
 		} else if strings.Contains(speechText, lcztn.GetText(lcztn.STR_EYE_COLOR_ORANGE)) {
 			intentParamValue = "COLOR_ORANGE"
+		} else if strings.Contains(speechText, lcztn.GetText(lcztn.STR_EYE_COLOR_RAINBOW)) {
+			intentParamValue = "COLOR_RAINBOW"
 		} else {
 			newIntent = intent
 			intentParamValue = ""
@@ -375,6 +377,8 @@ func ParamCheckerSlotsEnUS(req interface{}, intent string, slots map[string]stri
 			intentParamValue = "COLOR_GREEN"
 		} else if strings.Contains(slots["eye_color"], "orange") {
 			intentParamValue = "COLOR_ORANGE"
+		} else if strings.Contains(slots["eye_color"], "rainbow") || strings.Contains(slots["eye_color"], "brown") {
+			intentParamValue = "COLOR_ORANGE"
 		} else {
 			newIntent = intent
 			intentParamValue = ""
@@ -520,6 +524,8 @@ func prehistoricParamChecker(req interface{}, intent string, speechText string) 
 			intentParamValue = "COLOR_GREEN"
 		} else if strings.Contains(speechText, lcztn.GetText(lcztn.STR_EYE_COLOR_ORANGE)) {
 			intentParamValue = "COLOR_ORANGE"
+		} else if strings.Contains(speechText, lcztn.GetText(lcztn.STR_EYE_COLOR_RAINBOW)) {
+			intentParamValue = "COLOR_RAINBOW"
 		} else {
 			newIntent = intent
 			intentParamValue = ""
