@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # export CERT=<path/to/fullchain.pem>
 # export KEY=<path/to/privkey.pem>
 # export WEATHER_KEY=<weatherapi.com key>

@@ -54,7 +54,7 @@ function voskModelPrompt() {
 }
 
 function whichWhisperModel() {
-    availableModels="tiny, small, medium, large-v3, large-v3-q5_0"
+    availableModels="tiny, small, small.en, medium, medium.en, large-v3, large-v3-q5_0, large-v3-turbo"
     echo
     echo "Which Whisper model would you like to use?"
     echo "Options: $availableModels"
@@ -113,10 +113,32 @@ function setupWhisper() {
     mkdir -p ../whisper
     cp models/ggml-$whispermodel.bin ../whisper/ggml.bin
     rm -rf build_go
+    EXTRA_ARGS=0
+    if [[ ${compileCuda} == 1 ]]; then
+        PATH=$PATH:/usr/local/cuda/bin
+        EXTRA_ARGS='-DGGML_CUDA=1'
+    fi
     cmake -B build_go \
-    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-    cmake --build build_go --config Release
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON ${EXTRA_ARGS}
+    cmake --build build_go -j --config Release
     cd ..
+}
+
+function detectCUDA() {
+    if [[ -f /usr/local/cuda/bin/nvcc ]]; then
+        echo
+        echo "CUDA toolkit detected, would you like to compile Whisper to use it?"
+	echo
+        read -p "(y/n): " cudaToolkit
+        if [[ ${cudaToolkit} == "y" ]]; then
+            compileCuda=1
+        elif [[ ${cudaToolkit} == "n" ]]; then
+            compileCuda=0
+        else
+            echo "Enter y or n."
+            detectCuda
+        fi
+    fi
 }
 
 function buildCavalier() {
@@ -138,6 +160,7 @@ if [[ ${sttService} == "vosk" ]]; then
     voskModelPrompt
     setupVosk
 else
+    detectCUDA
     whichWhisperModel
     setupWhisper
 fi
