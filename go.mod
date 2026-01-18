@@ -1,6 +1,6 @@
 module cavalier
 
-go 1.23.2
+go 1.21
 
 require (
 	github.com/digital-dream-labs/api v0.0.0-20210824232136-8cc90c1bb12c
@@ -8,6 +8,7 @@ require (
 	github.com/digital-dream-labs/opus-go v0.0.0-20201230195736-934a8a9e0a1e
 	github.com/google/uuid v1.6.0
 	github.com/kercre123/vosk-api/go v1.0.2
+	github.com/kercre123/whisper.cpp/bindings/go v0.0.0-20250602164512-60cd96acff3a
 	github.com/kercre123/wire-pod/chipper v1.5.6
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/maxhawkins/go-webrtcvad v0.0.0-20210121163624-be60036f3083
