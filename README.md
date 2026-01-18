@@ -20,7 +20,7 @@ Can only be used with dev bots. I have an instance up at vicapi.pvic.xyz. My CFW
 
 - The accounts endpoints are a bit different
   - /v1/sessions, /v1/create_user
-- JWT tokens are not verified. This (I think) involves needing access to the per-bot cloud key database.
+- JWT tokens are not verified. This (I think) requires access to the per-bot cloud key database.
 
 ## TODO
 - Email verification
@@ -31,7 +31,9 @@ Can only be used with dev bots. I have an instance up at vicapi.pvic.xyz. My CFW
 
 ## how 2 run?
 
-1. Put libvosk.so and vosk-api.h in a new directory called vosklib (can be downloaded from [here](https://github.com/alphacep/vosk-api/releases/tag/v0.3.45))
+- prerequisites: Go (1.21>), gcc, g++, make, cmake
+
+1. cd into the cavalier directory, run `./setup.sh`
 2. Create a source.sh file with the following:
 
 ```
@@ -41,5 +43,5 @@ export WEATHER_KEY=<weatherapi.com key>
 export HOUND_KEY=<houndify client key>
 export HOUND_ID=<houndify client id>
 ```
-3. Run start.sh. It will build the program and run it. If you are just running the program, make sure source.sh is sourced and LD_LIBRARY_PATH includes vosklib.
+3. Run start.sh. It will run cavalier with the appropriate LD_LIBRARY_PATH, and with source.sh sourced.
 4. I use nginx as a proxy for the accounts API, and leave the rest not behind a proxy.
