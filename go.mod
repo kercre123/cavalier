@@ -24,7 +24,6 @@ require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/dchest/jsmin v0.0.0-20220218165748-59f39799265f // indirect
-	github.com/fforchino/vector-go-sdk v0.0.0-20231108155304-62168f3595d6 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/grd/ogg v0.0.0-20130623210630-0dae53159b70 // indirect
@@ -37,7 +36,6 @@ require (
 	github.com/ncruces/zenity v0.10.10 // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
-	github.com/sashabaranov/go-openai v1.27.1 // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
@@ -45,7 +43,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/wlynxg/anet v0.0.1 // indirect
 	golang.org/x/image v0.10.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
