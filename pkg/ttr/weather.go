@@ -15,7 +15,7 @@ import (
 
 	"cavalier/pkg/vars"
 
-	lcztn "github.com/kercre123/wire-pod/chipper/pkg/wirepod/localization"
+	lcztn "cavalier/pkg/localization"
 )
 
 /* TODO:
