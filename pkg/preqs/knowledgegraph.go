@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	sr "cavalier/pkg/speechrequest"
+	ttr "cavalier/pkg/ttr"
 	"cavalier/pkg/vars"
 	"cavalier/pkg/vtt"
 
@@ -51,14 +52,17 @@ func InitKnowledge() {
 }
 
 var NoResult string = "NoResultCommand"
-var NoResultSpoken string
 
 func houndifyKG(req sr.SpeechRequest) string {
 	var apiResponse string
 	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider == "houndify" {
 		fmt.Println("Sending request to Houndify...")
-		serverResponse := StreamAudioToHoundify(req, HKGclient)
-		apiResponse, _ = ParseSpokenResponse(serverResponse)
+		serverResponse, err := sttHandler(req)
+		if err != nil {
+			ttr.IntentPass(req, "intent_knowledge_no_response", "knowledge graph processing error: "+err.Error(), map[string]string{"error": err.Error()}, true)
+			return ""
+		}
+		apiResponse = houndifyTextRequest(serverResponse, req.Device, req.Session)
 		fmt.Println("Houndify response: " + apiResponse)
 	} else {
 		apiResponse = "Houndify is not enabled."
@@ -143,6 +147,5 @@ func houndifyTextRequest(queryText string, device string, session string) string
 
 	apiResponse = cleanHoundifyResponse(apiResponse)
 
-	fmt.Println("Houndify response:", apiResponse)
 	return apiResponse
 }

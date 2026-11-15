@@ -50,7 +50,10 @@ func (s *Server) ProcessIntentGraph(req *vtt.IntentGraphRequest) (*vtt.IntentGra
 
 				apiResponse := houndifyTextRequest(transcribedText, req.Device, req.Session)
 
-				if apiResponse == "" || strings.Contains(apiResponse, "not enabled") || strings.Contains(apiResponse, "Knowledge graph is not enabled") || strings.Contains(apiResponse, "Didn't get that!") {
+				if apiResponse == "" ||
+					strings.Contains(apiResponse, "not enabled") ||
+					strings.Contains(apiResponse, "Knowledge graph is not enabled") ||
+					strings.Contains(apiResponse, "Didn't get that!") {
 					fmt.Println("Houndify intent graph returned error/empty, cancelling response")
 					ttr.IntentPass(req, "intent_system_unmatched", transcribedText, map[string]string{"": ""}, false)
 					fmt.Println("Bot " + speechReq.Device + " houndify request not served.")
@@ -58,7 +61,7 @@ func (s *Server) ProcessIntentGraph(req *vtt.IntentGraphRequest) (*vtt.IntentGra
 				}
 
 				ttr.KnowledgeGraphResponseIG(req, apiResponse, transcribedText)
-				fmt.Println("Bot " + speechReq.Device + " request served via Houndify.")
+				fmt.Println("(IG) Bot " + speechReq.Device + " request served via Houndify.")
 				return nil, nil
 			} else {
 				fmt.Println("Intent Graph: Text too short to be worth sending to houndify")
