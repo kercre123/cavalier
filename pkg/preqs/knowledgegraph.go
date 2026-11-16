@@ -94,12 +94,18 @@ func (s *Server) ProcessKnowledgeGraph(req *vtt.KnowledgeGraphRequest) (*vtt.Kno
 
 		// Check if response is empty or contains error
 		var spokenResponse string
-		if apiResponse == "" || strings.TrimSpace(apiResponse) == "" {
-			fmt.Println("Houndify knowledge graph returned error/empty.")
+		if apiResponse == "" ||
+			strings.TrimSpace(apiResponse) == "" ||
+			strings.Contains(apiResponse, "not enabled") ||
+			strings.Contains(apiResponse, "Knowledge graph is not enabled") ||
+			strings.Contains(apiResponse, "Didn't get that!") {
+			fmt.Println("Houndify knowledge graph returned error/empty, cancelling reqest")
 			spokenResponse = ""
+			fmt.Println("(KG) Bot " + speechReq.Device + " request not served.")
 		} else {
 			spokenResponse = apiResponse
 			fmt.Println(spokenResponse)
+			fmt.Println("(KG) Bot " + speechReq.Device + " request served.")
 		}
 
 		kg := pb.KnowledgeGraphResponse{
@@ -108,7 +114,7 @@ func (s *Server) ProcessKnowledgeGraph(req *vtt.KnowledgeGraphRequest) (*vtt.Kno
 			CommandType: NoResult,
 			SpokenText:  spokenResponse,
 		}
-		fmt.Println("(KG) Bot " + speechReq.Device + " request served.")
+
 		if err := req.Stream.Send(&kg); err != nil {
 			return nil, err
 		}
