@@ -3,9 +3,11 @@ package processreqs
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	sr "cavalier/pkg/speechrequest"
+	ttr "cavalier/pkg/ttr"
 	"cavalier/pkg/vars"
 	"cavalier/pkg/vtt"
 
@@ -50,15 +52,23 @@ func InitKnowledge() {
 }
 
 var NoResult string = "NoResultCommand"
-var NoResultSpoken string
 
 func houndifyKG(req sr.SpeechRequest) string {
 	var apiResponse string
 	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider == "houndify" {
 		fmt.Println("Sending request to Houndify...")
-		serverResponse := StreamAudioToHoundify(req, HKGclient)
-		apiResponse, _ = ParseSpokenResponse(serverResponse)
-		fmt.Println("Houndify response: " + apiResponse)
+		if vars.APIConfig.Knowledge.LocalTexPros {
+			serverResponse, err := sttHandler(req)
+			if err != nil {
+				ttr.IntentPass(req, "intent_knowledge_no_response", "knowledge graph processing error: "+err.Error(), map[string]string{"error": err.Error()}, true)
+				return ""
+			}
+			apiResponse = houndifyTextRequest(serverResponse, req.Device, req.Session)
+		} else {
+			serverResponse := StreamAudioToHoundify(req, HKGclient)
+			apiResponse, _ = ParseSpokenResponse(serverResponse)
+			fmt.Println("Houndify response: " + apiResponse)
+		}
 	} else {
 		apiResponse = "Houndify is not enabled."
 		fmt.Println("Houndify is not enabled.")
@@ -81,17 +91,73 @@ func (s *Server) ProcessKnowledgeGraph(req *vtt.KnowledgeGraphRequest) (*vtt.Kno
 	speechReq := sr.ReqToSpeechRequest(req)
 	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider == "houndify" {
 		apiResponse := KgRequest(req, speechReq)
+
+		// Check if response is empty or contains error
+		var spokenResponse string
+		if apiResponse == "" ||
+			strings.TrimSpace(apiResponse) == "" ||
+			strings.Contains(apiResponse, "not enabled") ||
+			strings.Contains(apiResponse, "Knowledge graph is not enabled") ||
+			strings.Contains(apiResponse, "Didn't get that!") {
+			fmt.Println("Houndify knowledge graph returned error/empty, cancelling reqest")
+			spokenResponse = ""
+			fmt.Println("(KG) Bot " + speechReq.Device + " request not served.")
+		} else {
+			spokenResponse = apiResponse
+			fmt.Println(spokenResponse)
+			fmt.Println("(KG) Bot " + speechReq.Device + " request served.")
+		}
+
 		kg := pb.KnowledgeGraphResponse{
 			Session:     req.Session,
 			DeviceId:    req.Device,
 			CommandType: NoResult,
-			SpokenText:  apiResponse,
+			SpokenText:  spokenResponse,
 		}
-		fmt.Println("(KG) Bot " + speechReq.Device + " request served.")
+
 		if err := req.Stream.Send(&kg); err != nil {
 			return nil, err
 		}
 	}
 	return nil, nil
 
+}
+
+func cleanHoundifyResponse(response string) string {
+	// This should remove the "Redirected from" text
+	re := regexp.MustCompile(`^Redirected from [^.]+\.\s*`)
+	cleaned := re.ReplaceAllString(response, "")
+	return cleaned
+}
+
+func houndifyTextRequest(queryText string, device string, session string) string {
+	if !vars.APIConfig.Knowledge.Enable || vars.APIConfig.Knowledge.Provider != "houndify" {
+		return "Houndify is not enabled."
+	}
+
+	fmt.Println("Sending text request to Houndify...")
+
+	req := houndify.TextRequest{
+		Query:     queryText,
+		UserID:    device,
+		RequestID: session,
+	}
+
+	serverResponse, err := HKGclient.TextSearch(req)
+	if err != nil {
+		fmt.Println("Error sending text request to Houndify:", err)
+		return ""
+	}
+
+	apiResponse, err := ParseSpokenResponse(serverResponse)
+	if err != nil {
+		fmt.Println("Error parsing Houndify response:", err)
+		fmt.Println("Raw response:", serverResponse)
+		return ""
+	}
+
+	apiResponse = cleanHoundifyResponse(apiResponse)
+
+	fmt.Println("Houndify response:", apiResponse)
+	return apiResponse
 }

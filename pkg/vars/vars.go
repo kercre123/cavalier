@@ -6,15 +6,18 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
 )
 
 var (
-	SessionCertEnv = "SESSION_CERT_STORAGE"
-	HoundKeyEnv    = "HOUND_KEY"
-	HoundIDEnv     = "HOUND_ID"
-	WeatherKeyEnv  = "WEATHER_KEY"
-	KeyEnv         = "KEY"
-	CertEnv        = "CERT"
+	SessionCertEnv     = "SESSION_CERT_STORAGE"
+	HoundKeyEnv        = "HOUND_KEY"
+	HoundIDEnv         = "HOUND_ID"
+	HoundIGEnable      = "HOUND_IG"
+	HoundLocTexProcEnv = "HOUND_LOCAL_TEXT_PROC"
+	WeatherKeyEnv      = "WEATHER_KEY"
+	KeyEnv             = "KEY"
+	CertEnv            = "CERT"
 )
 
 var CertPath string
@@ -34,19 +37,12 @@ type apiConfig struct {
 		Unit     string `json:"unit"`
 	} `json:"weather"`
 	Knowledge struct {
-		Enable                 bool   `json:"enable"`
-		Provider               string `json:"provider"`
-		Key                    string `json:"key"`
-		ID                     string `json:"id"`
-		Model                  string `json:"model"`
-		IntentGraph            bool   `json:"intentgraph"`
-		RobotName              string `json:"robotName"`
-		OpenAIPrompt           string `json:"openai_prompt"`
-		OpenAIVoice            string `json:"openai_voice"`
-		OpenAIVoiceWithEnglish bool   `json:"openai_voice_with_english"`
-		SaveChat               bool   `json:"save_chat"`
-		CommandsEnable         bool   `json:"commands_enable"`
-		Endpoint               string `json:"endpoint"`
+		Enable       bool   `json:"enable"`
+		Provider     string `json:"provider"`
+		Key          string `json:"key"`
+		ID           string `json:"id"`
+		IntentGraph  bool   `json:"intentgraph"`
+		LocalTexPros bool   `json:"localtexpros"`
 	} `json:"knowledge"`
 	STT struct {
 		Service  string `json:"provider"`
@@ -69,6 +65,18 @@ type JsonIntent struct {
 	Name              string   `json:"name"`
 	Keyphrases        []string `json:"keyphrases"`
 	RequireExactMatch bool     `json:"requiresexact"`
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(val)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 func LoadIntents() ([]JsonIntent, error) {
@@ -118,6 +126,8 @@ func Init() {
 	APIConfig.Knowledge.Provider = "houndify"
 	APIConfig.Knowledge.Key = os.Getenv(HoundKeyEnv)
 	APIConfig.Knowledge.ID = os.Getenv(HoundIDEnv)
+	APIConfig.Knowledge.IntentGraph = getEnvBool(HoundLocTexProcEnv, true)
+	APIConfig.Knowledge.LocalTexPros = getEnvBool(HoundLocTexProcEnv, true)
 	APIConfig.Weather.Enable = true
 	APIConfig.Weather.Key = os.Getenv(WeatherKeyEnv)
 	APIConfig.Weather.Provider = "weatherapi.com"

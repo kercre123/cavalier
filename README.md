@@ -4,7 +4,7 @@ Pretty much fully functional cloud software for the Anki/DDL Vector robot.
 
 Still somewhat experimental.
 
-Can only be used with dev bots. I have an instance up at vicapi.pvic.xyz. My CFW ([victor](https://github.com/kercre123/victor)) is pointed to it. Vector Web Setup for it: https://v.pvic.xyz
+Can only be used with unlocked bots (dev/oskr/unlock-prod). I have an instance up at vicapi.pvic.xyz. My CFW ([WireOS](https://github.com/os-vector/wire-os)) is pointed to it. Vector Web Setup for it: https://v.pvic.xyz
 
 ## What is implemented?
 
@@ -43,5 +43,11 @@ export WEATHER_KEY=<weatherapi.com key>
 export HOUND_KEY=<houndify client key>
 export HOUND_ID=<houndify client id>
 ```
-3. Run start.sh. It will run cavalier with the appropriate LD_LIBRARY_PATH, and with source.sh sourced.
+And these optional settings if you desire:
+```
+export HOUND_IG=<true/false> (default is true)
+export HOUND_LOCAL_TEXT_PROC=<true/false> (default is true)
+```
+
+3. Run cavalier.sh. It will run cavalier with the appropriate LD_LIBRARY_PATH, and with source.sh sourced.
 4. I use nginx as a proxy for the accounts API, and leave the rest not behind a proxy.
