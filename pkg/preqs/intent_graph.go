@@ -43,20 +43,28 @@ func (s *Server) ProcessIntentGraph(req *vtt.IntentGraphRequest) (*vtt.IntentGra
 		return nil, nil
 	}
 	if !successMatched {
-		// 	fmt.Println("No intent was matched.")
-		// 	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider == "openai" && len([]rune(transcribedText)) >= 8 {
-		// 		apiResponse := openaiRequest(transcribedText)
-		// 		response := &pb.IntentGraphResponse{
-		// 			Session:      req.Session,
-		// 			DeviceId:     req.Device,
-		// 			ResponseType: pb.IntentGraphMode_KNOWLEDGE_GRAPH,
-		// 			SpokenText:   apiResponse,
-		// 			QueryText:    transcribedText,
-		// 			IsFinal:      true,
-		// 		}
-		// 		req.Stream.Send(response)
-		// 		return nil, nil
-		// 	}
+		if vars.APIConfig.Knowledge.Enable {
+			if len([]rune(transcribedText)) >= 8 && !strings.Contains(transcribedText, "**") {
+				fmt.Println("No intent matched, forwarding to Houndify for device " + req.Device + "...")
+				InitKnowledge() // Errors without this for whatever reason even though I think it should be inited already
+
+				apiResponse := houndifyTextRequest(transcribedText, req.Device, req.Session)
+
+				if apiResponse == "" || strings.Contains(apiResponse, "not enabled") || strings.Contains(apiResponse, "Knowledge graph is not enabled") || strings.Contains(apiResponse, "Didn't get that!") {
+					fmt.Println("Houndify intent graph returned error/empty, cancelling response")
+					ttr.IntentPass(req, "intent_system_unmatched", transcribedText, map[string]string{"": ""}, false)
+					fmt.Println("Bot " + speechReq.Device + " houndify request not served.")
+					return nil, nil
+				}
+
+				ttr.KnowledgeGraphResponseIG(req, apiResponse, transcribedText)
+				fmt.Println("Bot " + speechReq.Device + " request served via Houndify.")
+				return nil, nil
+			} else {
+				fmt.Println("Intent Graph: Text too short to be worth sending to houndify")
+			}
+		}
+		fmt.Println("No intent was matched.")
 		ttr.IntentPass(req, "intent_system_unmatched", transcribedText, map[string]string{"": ""}, false)
 		return nil, nil
 	}

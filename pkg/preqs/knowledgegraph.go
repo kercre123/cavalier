@@ -3,6 +3,7 @@ package processreqs
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	sr "cavalier/pkg/speechrequest"
@@ -81,11 +82,22 @@ func (s *Server) ProcessKnowledgeGraph(req *vtt.KnowledgeGraphRequest) (*vtt.Kno
 	speechReq := sr.ReqToSpeechRequest(req)
 	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider == "houndify" {
 		apiResponse := KgRequest(req, speechReq)
+
+		// Check if response is empty or contains error
+		var spokenResponse string
+		if apiResponse == "" || strings.TrimSpace(apiResponse) == "" {
+			fmt.Println("Houndify knowledge graph returned error/empty.")
+			spokenResponse = ""
+		} else {
+			spokenResponse = apiResponse
+			fmt.Println(spokenResponse)
+		}
+
 		kg := pb.KnowledgeGraphResponse{
 			Session:     req.Session,
 			DeviceId:    req.Device,
 			CommandType: NoResult,
-			SpokenText:  apiResponse,
+			SpokenText:  spokenResponse,
 		}
 		fmt.Println("(KG) Bot " + speechReq.Device + " request served.")
 		if err := req.Stream.Send(&kg); err != nil {
@@ -94,4 +106,43 @@ func (s *Server) ProcessKnowledgeGraph(req *vtt.KnowledgeGraphRequest) (*vtt.Kno
 	}
 	return nil, nil
 
+}
+
+func cleanHoundifyResponse(response string) string {
+	// This should remove the "Redirected from" text
+	re := regexp.MustCompile(`^Redirected from [^.]+\.\s*`)
+	cleaned := re.ReplaceAllString(response, "")
+	return cleaned
+}
+
+func houndifyTextRequest(queryText string, device string, session string) string {
+	if !vars.APIConfig.Knowledge.Enable || vars.APIConfig.Knowledge.Provider != "houndify" {
+		return "Houndify is not enabled."
+	}
+
+	fmt.Println("Sending text request to Houndify...")
+
+	req := houndify.TextRequest{
+		Query:     queryText,
+		UserID:    device,
+		RequestID: session,
+	}
+
+	serverResponse, err := HKGclient.TextSearch(req)
+	if err != nil {
+		fmt.Println("Error sending text request to Houndify:", err)
+		return ""
+	}
+
+	apiResponse, err := ParseSpokenResponse(serverResponse)
+	if err != nil {
+		fmt.Println("Error parsing Houndify response:", err)
+		fmt.Println("Raw response:", serverResponse)
+		return ""
+	}
+
+	apiResponse = cleanHoundifyResponse(apiResponse)
+
+	fmt.Println("Houndify response:", apiResponse)
+	return apiResponse
 }
