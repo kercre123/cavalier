@@ -57,13 +57,18 @@ func houndifyKG(req sr.SpeechRequest) string {
 	var apiResponse string
 	if vars.APIConfig.Knowledge.Enable && vars.APIConfig.Knowledge.Provider == "houndify" {
 		fmt.Println("Sending request to Houndify...")
-		serverResponse, err := sttHandler(req)
-		if err != nil {
-			ttr.IntentPass(req, "intent_knowledge_no_response", "knowledge graph processing error: "+err.Error(), map[string]string{"error": err.Error()}, true)
-			return ""
+		if vars.APIConfig.Knowledge.LocalTexPros {
+			serverResponse, err := sttHandler(req)
+			if err != nil {
+				ttr.IntentPass(req, "intent_knowledge_no_response", "knowledge graph processing error: "+err.Error(), map[string]string{"error": err.Error()}, true)
+				return ""
+			}
+			apiResponse = houndifyTextRequest(serverResponse, req.Device, req.Session)
+		} else {
+			serverResponse := StreamAudioToHoundify(req, HKGclient)
+			apiResponse, _ = ParseSpokenResponse(serverResponse)
+			fmt.Println("Houndify response: " + apiResponse)
 		}
-		apiResponse = houndifyTextRequest(serverResponse, req.Device, req.Session)
-		fmt.Println("Houndify response: " + apiResponse)
 	} else {
 		apiResponse = "Houndify is not enabled."
 		fmt.Println("Houndify is not enabled.")
@@ -147,5 +152,6 @@ func houndifyTextRequest(queryText string, device string, session string) string
 
 	apiResponse = cleanHoundifyResponse(apiResponse)
 
+	fmt.Println("Houndify response:", apiResponse)
 	return apiResponse
 }
